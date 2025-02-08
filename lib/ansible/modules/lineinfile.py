@@ -28,6 +28,11 @@ options:
     type: path
     required: true
     aliases: [ dest, destfile, name ]
+  file_encoding:
+    description:
+      - The character set the target file is encoded in.
+    type: str
+    version_added: "2.19"
   regexp:
     description:
       - The regular expression to look for in every line of the file.
@@ -253,8 +258,14 @@ from ansible.module_utils.common.text.converters import to_bytes, to_native, to_
 def write_changes(module, b_lines, dest):
 
     tmpfd, tmpfile = tempfile.mkstemp(dir=module.tmpdir)
-    with os.fdopen(tmpfd, 'wb') as f:
-        f.writelines(b_lines)
+
+    if  module.params['file_encoding']:
+        file_encoding = module.params['file_encoding']
+        with os.fdopen(tmpfd, 'wb') as f:
+            f.writelines([i.decode('utf-8').encode(file_encoding) for i in b_lines])
+    else:
+        with os.fdopen(tmpfd, 'wb') as f:
+            f.writelines(b_lines)
 
     validate = module.params.get('validate', None)
     valid = not validate
@@ -306,8 +317,15 @@ def present(module, dest, regexp, search_string, line, insertafter, insertbefore
 
         b_lines = []
     else:
-        with open(b_dest, 'rb') as f:
-            b_lines = f.readlines()
+        if module.params['file_encoding']:
+            file_encoding = module.params['file_encoding']
+            with open(b_dest, 'rt', encoding=file_encoding) as f:
+                lines = f.readlines()
+                b_lines = [bytes(s, 'utf-8') for s in lines]
+
+        else:
+            with open(b_dest, 'rb') as f:
+                b_lines = f.readlines()
 
     if module._diff:
         diff['before'] = to_native(b''.join(b_lines))
@@ -567,6 +585,7 @@ def main():
             regexp=dict(type='str', aliases=['regex']),
             search_string=dict(type='str'),
             line=dict(type='str', aliases=['value']),
+            file_encoding=dict(type='str'),
             insertafter=dict(type='str'),
             insertbefore=dict(type='str'),
             backrefs=dict(type='bool', default=False),
