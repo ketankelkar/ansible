@@ -258,11 +258,10 @@ from ansible.module_utils.common.text.converters import to_bytes, to_native, to_
 def write_changes(module, b_lines, dest):
 
     tmpfd, tmpfile = tempfile.mkstemp(dir=module.tmpdir)
-
     if  module.params['file_encoding']:
         file_encoding = module.params['file_encoding']
-        with os.fdopen(tmpfd, 'wb') as f:
-            f.writelines([i.decode('utf-8').encode(file_encoding) for i in b_lines])
+        with os.fdopen(tmpfd, 'wt', encoding=file_encoding) as f:
+            f.writelines([i.decode('utf-8') for i in b_lines])
     else:
         with os.fdopen(tmpfd, 'wb') as f:
             f.writelines(b_lines)
