@@ -527,8 +527,14 @@ def absent(module, dest, regexp, search_string, line, backup):
             'before_header': '%s (content)' % dest,
             'after_header': '%s (content)' % dest}
 
-    with open(b_dest, 'rb') as f:
-        b_lines = f.readlines()
+    if module.params['file_encoding']:
+        file_encoding = module.params['file_encoding']
+        with open(b_dest, 'rt', encoding=file_encoding) as f:
+            lines = f.readlines()
+            b_lines = [bytes(s, 'utf-8') for s in lines]
+    else:
+        with open(b_dest, 'rb') as f:
+            b_lines = f.readlines()
 
     if module._diff:
         diff['before'] = to_native(b''.join(b_lines))
