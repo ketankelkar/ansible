@@ -23,6 +23,7 @@ from ansible.cli.arguments import option_helpers as opt_help
 from ansible.executor.task_queue_manager import TaskQueueManager
 from ansible.module_utils.common.text.converters import to_native, to_text
 from ansible.module_utils.parsing.convert_bool import boolean
+from ansible.parsing.dataloader import DataLoader
 from ansible.parsing.splitter import parse_kv
 from ansible.playbook.play import Play
 from ansible.plugins.list import list_plugins
@@ -31,6 +32,7 @@ from ansible.utils import plugin_docs
 from ansible.utils.color import stringc
 from ansible._internal._datatag._tags import TrustedAsTemplate
 from ansible.utils.display import Display
+from ansible.utils.vars import load_env_vars
 
 display = Display()
 
@@ -118,6 +120,7 @@ class ConsoleCLI(CLI, cmd.Cmd):
         opt_help.add_basedir_options(self.parser)
         opt_help.add_runtask_options(self.parser)
         opt_help.add_tasknoplay_options(self.parser)
+        opt_help.add_envvar_options(self.parser)
 
         # options unique to shell
         self.parser.add_argument('pattern', help='host pattern', metavar='pattern', default='all', nargs='?')
@@ -195,6 +198,12 @@ class ConsoleCLI(CLI, cmd.Cmd):
         try:
             check_raw = module in C._ACTION_ALLOWS_RAW_ARGS
             task = dict(action=dict(module=module, args=parse_kv(module_args, check_raw=check_raw)), timeout=self.task_timeout)
+
+            if context.CLIARGS.get('environment'):
+                loader = DataLoader()
+                task['environment'] = load_env_vars(loader)
+
+
             play_ds = dict(
                 name="Ansible Shell",
                 hosts=self.cwd,
