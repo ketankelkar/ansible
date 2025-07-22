@@ -17,10 +17,12 @@ from ansible.errors import AnsibleError, AnsibleOptionsError, AnsibleParserError
 from ansible.executor.task_queue_manager import TaskQueueManager
 from ansible.module_utils.common.text.converters import to_text
 from ansible.parsing.splitter import parse_kv
+from ansible.parsing.dataloader import DataLoader
 from ansible.playbook import Playbook
 from ansible.playbook.play import Play
 from ansible._internal._datatag._tags import Origin
 from ansible.utils.display import Display
+from ansible.utils.vars import load_env_vars
 from ansible._internal._json._profiles import _legacy
 
 display = Display()
@@ -53,6 +55,7 @@ class AdHocCLI(CLI):
         opt_help.add_module_options(self.parser)
         opt_help.add_basedir_options(self.parser)
         opt_help.add_tasknoplay_options(self.parser)
+        opt_help.add_envvar_options(self.parser)
 
         # options unique to ansible ad-hoc
         self.parser.add_argument('-a', '--args', dest='module_args',
@@ -90,6 +93,10 @@ class AdHocCLI(CLI):
 
         mytask = {'action': {'module': context.CLIARGS['module_name'], 'args': module_args},
                   'timeout': context.CLIARGS['task_timeout']}
+
+        if context.CLIARGS.get('environment'):
+            loader = DataLoader()
+            mytask['environment'] = load_env_vars(loader)
 
         mytask = Origin(description=f'<adhoc {context.CLIARGS["module_name"]!r} task>').tag(mytask)
 

@@ -211,6 +211,37 @@ def load_extra_vars(loader: DataLoader) -> dict[str, t.Any]:
     return load_extra_vars.extra_vars
 
 
+def load_env_vars(loader: DataLoader) -> dict[str, t.Any]:
+
+
+    if not getattr(load_env_vars, 'environment', None):
+        env_vars: dict[str, t.Any] = {}
+        for env_vars_opt in context.CLIARGS.get('environment', tuple()):
+            env_vars_opt = to_text(env_vars_opt, errors='surrogate_or_strict')
+            if env_vars_opt is None or not env_vars_opt:
+                continue
+
+            if env_vars_opt.startswith(u"@"):
+                # Argument is a YAML file (JSON is a subset of YAML)
+                data = loader.load_from_file(env_vars_opt[1:], trusted_as_template=True)
+            elif env_vars_opt[0] in [u'/', u'.']:
+                raise AnsibleOptionsError("Please prepend env_vars filename '%s' with '@'" % env_vars_opt)
+            elif env_vars_opt[0] in [u'[', u'{']:
+                # Arguments as YAML
+                data = loader.load(env_vars_opt)
+            else:
+                # Arguments as Key-value
+                data = parse_kv(env_vars_opt)
+
+            if isinstance(data, MutableMapping):
+                env_vars = combine_vars(env_vars, data)
+            else:
+                raise AnsibleOptionsError("Invalid env vars data supplied. '%s' could not be made into a dictionary" % env_vars_opt)
+
+        load_env_vars.env_vars = env_vars
+
+    return load_env_vars.env_vars
+
 def load_options_vars(version):
 
     if not getattr(load_options_vars, 'options_vars', None):

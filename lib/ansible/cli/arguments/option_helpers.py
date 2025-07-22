@@ -499,6 +499,11 @@ def add_runtask_options(parser):
     parser.add_argument('-e', '--extra-vars', dest="extra_vars", action="append", type=maybe_unfrack_path('@'),
                         help="set additional variables as key=value or YAML/JSON, if filename prepend with @", default=[])
 
+def add_envvar_options(parser):
+    """Add options for commands that run a task"""
+    parser.add_argument('-E', '--envvars', dest="environment", action="append", type=maybe_unfrack_path('@'),
+                        help="set additional variables as key=value or YAML/JSON, if filename prepend with @", default=[])
+
 
 def add_tasknoplay_options(parser):
     """Add options for commands that run a task w/o a defined play"""
